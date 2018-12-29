@@ -8,49 +8,32 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Insets;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
-import java.util.Vector;
-
-import javax.accessibility.Accessible;
-import javax.accessibility.AccessibleContext;
-import javax.accessibility.AccessibleRelation;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JCheckBox;
 import javax.swing.JFrame;
-import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 import javax.swing.JScrollPane;
-import javax.swing.JSlider;
 import javax.swing.JTable;
-import javax.swing.JToolBar;
 import javax.swing.JTree;
 import javax.swing.UIManager;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeCellEditor;
-import javax.swing.tree.DefaultTreeCellRenderer;
 import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.TreeSelectionModel;
-
 import org.jb2011.lnf.beautyeye.BeautyEyeLNFHelper;
-
 import Listeners.JTreeListeners;
 
 // http://www.iteedu.com/plang/java/jtswingchxshj/58.php
 
 public class Editor extends JFrame {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	public static JTable table;
 	public static JTree tree;
 	
@@ -80,6 +63,8 @@ public class Editor extends JFrame {
 		this.setMinimumSize(new Dimension(1000, 700));
 		this.setLocationRelativeTo(null);
 		this.setTitle("Editor");
+		
+		// 菜单栏
 		JMenuBar menuBar = new JMenuBar();
 		setJMenuBar(menuBar);
 		JMenu mnMenumeration = new JMenu("Menu1");
@@ -124,16 +109,14 @@ public class Editor extends JFrame {
         //树相关
         DefaultMutableTreeNode root = new DefaultMutableTreeNode("模块");
 		tree = new JTree(root);
+		ConfigReader configReader = new ConfigReader();
+		configReader.initializeTree(tree); // 读取配置文件获取JTree的初始值
 		tree.setFont(new Font("微软雅黑",Font.PLAIN,13));
 		tree.setEditable(true);// 设置JTree为可编辑的
 		JTreeListeners treeListeners = new JTreeListeners();
-		tree.addMouseListener(treeListeners.new MouseHandle());// 使Tree加入检测Mouse事件，以便取得节点名称
-		// 下面两行取得DefaultTreeModel,并检测是否有TreeModelEvent事件.
+		tree.addMouseListener(treeListeners.new MouseHandle()); // 使Tree加入检测Mouse事件，以便取得节点名称
 		DefaultTreeModel treeModel = (DefaultTreeModel) tree.getModel();
-		treeModel.addTreeModelListener(treeListeners);
-        
-		
-		
+		treeModel.addTreeModelListener(treeListeners);	// 添加监听器
         scrollPane.setViewportView(tree);
         treePanel.add(scrollPane);
         JPopupMenu popup = new JPopupMenu(); // 右键弹出菜单
@@ -177,7 +160,9 @@ public class Editor extends JFrame {
 	
 	class GBC extends GridBagConstraints  
 	{  
-	   //初始化左上角位置  
+	   private static final long serialVersionUID = 1L;
+
+	//初始化左上角位置  
 	   public GBC(int gridx, int gridy)  
 	   {  
 	      this.gridx = gridx;  

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project>
+   <module name="模块1">
+     <case>用例1</case>
+     <case>用例2</case>
+   </module>
+    <module name="模块2">
+     <case>用例3</case>
+     <case>用例4</case>
+   </module>
+    <module name="模块3">
+     <case>用例5</case>
+     <case>用例6</case>
+   </module>
+</project>

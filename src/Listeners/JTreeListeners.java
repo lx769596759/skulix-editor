@@ -14,20 +14,15 @@ import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import org.apache.commons.io.FileUtils;
+
+import Client.ConfigReader;
 import Client.Editor;
 
 public class JTreeListeners implements TreeModelListener,ActionListener{
 	
-	private String workPath;
-	private String testCasePath;
-	private String templetePath;
+	private String testCasePath = ConfigReader.testCasePath;
+	private String templetePath = ConfigReader.templetePath;
 	
-	{
-		workPath = System.getProperty("user.dir") + File.separator; // 工作路径
-		testCasePath = workPath + "TestCases\\"; // 用例路径
-		templetePath = workPath + "Templete\\"; // 模板路径
-	}
-
 	@Override
 	public void treeNodesChanged(TreeModelEvent e) {
 		TreePath treePath = e.getTreePath();
