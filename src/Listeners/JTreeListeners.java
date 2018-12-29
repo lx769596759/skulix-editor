@@ -10,6 +10,7 @@ import javax.swing.event.TreeModelEvent;
 import javax.swing.event.TreeModelListener;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.MutableTreeNode;
 import javax.swing.tree.TreeModel;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
@@ -83,49 +84,55 @@ public class JTreeListeners implements TreeModelListener,ActionListener{
 		public void actionPerformed(ActionEvent ae) {
 			JTree tree = Editor.tree;
 			DefaultTreeModel treeModel = (DefaultTreeModel) tree.getModel();
-			if (ae.getActionCommand().equals("新增节点")) {
-				DefaultMutableTreeNode newNode = new DefaultMutableTreeNode("新节点");
+			if (ae.getActionCommand().equals("新增模块")) {
+				DefaultMutableTreeNode newNode = new DefaultMutableTreeNode("新模块");
 				newNode.setAllowsChildren(true);
 				DefaultMutableTreeNode root = (DefaultMutableTreeNode)treeModel.getRoot();
-				
-//				TreePath parentPath = tree.getSelectionPath();
-//
-//				// 取得新节点的父节点
-//				parentNode = (DefaultMutableTreeNode) (parentPath
-//						.getLastPathComponent());
-
-				// 由DefaultTreeModel的insertNodeInto（）方法增加新节点
-				treeModel.insertNodeInto(newNode, root, root
-						.getChildCount());
-
-				// tree的scrollPathToVisible()方法在使Tree会自动展开文件夹以便显示所加入的新节点。若没加这行则加入的新节点
-				// 会被 包在文件夹中，你必须自行展开文件夹才看得到。
+				// 由DefaultTreeModel的insertNodeInto()方法增加新节点
+				treeModel.insertNodeInto(newNode, root, root.getChildCount());
+				// 展开节点
 				tree.scrollPathToVisible(new TreePath(newNode.getPath()));
 			}
-			if (ae.getActionCommand().equals("删除节点")) {
+			if (ae.getActionCommand().equals("新增用例")) {
+				DefaultMutableTreeNode newNode = new DefaultMutableTreeNode("新用例");
+				newNode.setAllowsChildren(false);
 				TreePath treepath = tree.getSelectionPath();
-				if (treepath != null) {
-					// 下面两行取得选取节点的父节点.
-					DefaultMutableTreeNode selectionNode = (DefaultMutableTreeNode) treepath
-							.getLastPathComponent();
-					TreeNode parent = (TreeNode) selectionNode.getParent();
-					if (parent != null) {
-						// 由DefaultTreeModel的removeNodeFromParent()方法删除节点，包含它的子节点。
-						treeModel.removeNodeFromParent(selectionNode);
+				if (treepath != null && treepath.getPath().length <= 2) { // 层级不能大于2
+					// 获取选中的节点
+					DefaultMutableTreeNode selectionNode = (DefaultMutableTreeNode) treepath.getLastPathComponent();
+					if (selectionNode != null && selectionNode != treeModel.getRoot()) { // 不能为null或者根节点
+						treeModel.insertNodeInto(newNode, selectionNode, selectionNode.getChildCount());
+						tree.scrollPathToVisible(new TreePath(newNode.getPath()));
 					}
 				}
+				// 不符合要求
+				System.out.println("请指定模块！");		
 			}
-			if (ae.getActionCommand().equals("清除所有节点")) {
-
-				// 下面一行，由DefaultTreeModel的getRoot()方法取得根节点.
-				DefaultMutableTreeNode rootNode = (DefaultMutableTreeNode) treeModel
-						.getRoot();
-
-				// 下面一行删除所有子节点.
-				rootNode.removeAllChildren();
-
-				// 删除完后务必运行DefaultTreeModel的reload()操作，整个Tree的节点才会真正被删除.
-				treeModel.reload();
+			if (ae.getActionCommand().equals("删除")) {
+				TreePath treepath = tree.getSelectionPath();
+				if(treepath == null) { //没有选节点
+					System.out.println("请选择要删除的节点！");
+					return;
+				}
+				
+				int level = treepath.getPath().length;
+				// 获取选中的节点
+				DefaultMutableTreeNode selectionNode = (DefaultMutableTreeNode) treepath.getLastPathComponent();
+				switch (level) {
+				case 1 :
+					System.out.println("确定删除所有模块和用例？");
+					selectionNode.removeAllChildren();
+					treeModel.reload(); // 重新加载树
+					break;
+				case 2 :
+					System.out.println("确定删除该模块？");					
+					treeModel.removeNodeFromParent(selectionNode);
+					break;
+			    case 3 :
+				    System.out.println("确定删除该用例？");
+				    treeModel.removeNodeFromParent(selectionNode);
+				    break;
+			    }
 			}
 			
 			
