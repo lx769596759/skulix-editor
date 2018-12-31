@@ -1,187 +1,292 @@
 package Listeners;
 
+import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.util.Arrays;
+import java.util.List;
+
+import javax.swing.DefaultCellEditor;
+import javax.swing.JComboBox;
+import javax.swing.JOptionPane;
+import javax.swing.JTable;
 import javax.swing.JTree;
-import javax.swing.event.TreeModelEvent;
-import javax.swing.event.TreeModelListener;
+import javax.swing.event.TreeSelectionEvent;
+import javax.swing.event.TreeSelectionListener;
+import javax.swing.table.TableColumn;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
 import org.apache.commons.io.FileUtils;
-
+import org.dom4j.Attribute;
+import org.dom4j.Document;
+import org.dom4j.DocumentException;
+import org.dom4j.Element;
+import org.dom4j.io.OutputFormat;
+import org.dom4j.io.SAXReader;
+import org.dom4j.io.XMLWriter;
 import Client.ConfigReader;
 import Client.Editor;
+import Domain.KeyWord;
+import Domain.TestStep;
+import utils.ExcelHelper;
 
-public class JTreeListeners implements TreeModelListener,ActionListener{
+public class JTreeListeners extends MouseAdapter implements TreeSelectionListener ,ActionListener{
 	
 	private String testCasePath = ConfigReader.testCasePath;
 	private String templetePath = ConfigReader.templetePath;
+	private String configFilesPath = ConfigReader.configFilesPath;
+	private SAXReader reader = new SAXReader();
+	private String currentNode; // 当前选中的节点名 
 	
-	@Override
-	public void treeNodesChanged(TreeModelEvent e) {
-		TreePath treePath = e.getTreePath();
-		System.out.println(treePath);
-		// 下面这行由TreeModelEvent取得的DefaultMutableTreeNode为节点的父节点，而不是用户点选
-		// 的节点，这点读者要特别注意。要取得真正的节点需要再加写下面6行代码.
-		DefaultMutableTreeNode node = (DefaultMutableTreeNode) treePath
-				.getLastPathComponent();
-		try {
-			// getChildIndices()方法会返回目前修改节点的索引值。由于我们只修改一个节点，因此节点索引值就放在index[0]
-			// 的位置，若点选的节点为root
-			// node,则getChildIndices()的返回值为null,程序下面的第二行就在处理点选root
-			// node产生的NullPointerException问题.
-			int[] index = e.getChildIndices();
-			// 由DefaultMutableTreeNode类的getChildAt()方法取得修改的节点对象.
-			node = (DefaultMutableTreeNode) node.getChildAt(index[0]);
-		} catch (NullPointerException exc) {
-			
-		}
-		// 由DefaultMutableTreeNode类getUserObject()方法取得节点的内容，或是写成node.toString()亦相同.		
-	}
-
-	@Override
-	public void treeNodesInserted(TreeModelEvent arg0) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void treeNodesRemoved(TreeModelEvent arg0) {
-		// TODO Auto-generated method stub
-		
-	}
-
-	@Override
-	public void treeStructureChanged(TreeModelEvent arg0) {
-		// TODO Auto-generated method stub
-		
-	}
-	
-	// 处理Mouse点选事件
-    public class MouseHandle extends MouseAdapter {
-			public void mousePressed(MouseEvent e) {
-				try {
-					JTree tree = (JTree) e.getSource();
-					/*
-					 * JTree的getSelectionPath()方法会取得从root
-					 * node到点选节点的一条path,此path为一条直线，如程序运行的图示若你点选“本机磁盘(E:)”,则Tree
-					 * Path为"资源管理器"-->"我的电脑"-->"本机磁盘(E:)",因此利用TreePath
-					 * 的getLastPathComponent()方法就可以取得所点选的节点.
-					 */
-
-					TreePath treepath=tree.getSelectionPath();
-					TreeNode treenode = (TreeNode) treepath.getLastPathComponent();
-					String nodeName = treenode.toString();
-					System.out.println(nodeName);
-				} catch (NullPointerException ne) {
-				}
+	    // 处理Mouse点选事件
+	    public void mousePressed(MouseEvent e) {	    	
+			try {
+				JTree tree = (JTree) e.getSource();
+				TreePath treepath = tree.getSelectionPath();
+				TreeNode treenode = (TreeNode) treepath.getLastPathComponent();
+				String nodeName = treenode.toString();
+				currentNode = nodeName;
+			} catch (NullPointerException ne) {
+				// 没有选中节点时会有NPE 不做任何动作
 			}
 		}
+		
 
 		@Override
 		public void actionPerformed(ActionEvent ae) {
 			JTree tree = Editor.tree;
 			DefaultTreeModel treeModel = (DefaultTreeModel) tree.getModel();
 			if (ae.getActionCommand().equals("新增模块")) {
-				DefaultMutableTreeNode newNode = new DefaultMutableTreeNode("新模块");
+				String moduleName = JOptionPane.showInputDialog(Editor.frame, "请输入模块名", "新增", JOptionPane.INFORMATION_MESSAGE);
+				if (moduleName == null || moduleName.equals("")) {
+					return;
+				}
+				if (!addNewModule(moduleName)) { // 校验模块名是否重复，未重复写入XML
+					JOptionPane.showMessageDialog(Editor.frame, "该模块已存在！", "提示", JOptionPane.WARNING_MESSAGE);
+					return;
+				}
+				
+				// 新增节点
+				DefaultMutableTreeNode newNode = new DefaultMutableTreeNode(moduleName);
 				newNode.setAllowsChildren(true);
 				DefaultMutableTreeNode root = (DefaultMutableTreeNode)treeModel.getRoot();
-				// 由DefaultTreeModel的insertNodeInto()方法增加新节点
-				treeModel.insertNodeInto(newNode, root, root.getChildCount());
-				// 展开节点
-				tree.scrollPathToVisible(new TreePath(newNode.getPath()));
+				treeModel.insertNodeInto(newNode, root, root.getChildCount()); // 由DefaultTreeModel的insertNodeInto()方法增加新节点
+				tree.scrollPathToVisible(new TreePath(newNode.getPath())); // 展开节点
 				
 				// 新增模块文件夹				
-				File moduleFolder = new File(testCasePath,"新模块");
+				File moduleFolder = new File(testCasePath, moduleName);
 				if (!moduleFolder.exists()) {
 					moduleFolder.mkdirs();
 				}
 			}
 			if (ae.getActionCommand().equals("新增用例")) {
-				DefaultMutableTreeNode newNode = new DefaultMutableTreeNode("新用例");
-				newNode.setAllowsChildren(false);
 				TreePath treepath = tree.getSelectionPath();
-				if (treepath != null && treepath.getPath().length == 2) { // 层级等于2，说明为模块
-					// 获取选中的节点
-					DefaultMutableTreeNode selectionNode = (DefaultMutableTreeNode) treepath.getLastPathComponent();
-					treeModel.insertNodeInto(newNode, selectionNode, selectionNode.getChildCount());
-					tree.scrollPathToVisible(new TreePath(newNode.getPath()));
-						
-					// 新建用例文件
-					File srcFile = new File (templetePath + "CaseTemplate.xls");
-					File destFile = new File (testCasePath + selectionNode.toString() + "\\新用例.xls");
-					try {
-						FileUtils.copyFile(srcFile, destFile);
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
+				if (treepath == null || treepath.getPath().length != 2) { // 为null说明未选任何节点，不为2说明没有选中模块节点
+					JOptionPane.showMessageDialog(Editor.frame, "请指定模块！", "提示", JOptionPane.WARNING_MESSAGE);
+					return;
+				}							
+				String caseName = JOptionPane.showInputDialog(Editor.frame, "请输入用例名", "新增", JOptionPane.INFORMATION_MESSAGE);
+				if (caseName == null || caseName.equals("")) {
 					return;
 				}
-				// 其他情况
-				System.out.println("请指定模块！");
+				if (!addNewCase(treepath.getPath()[1].toString(),caseName)) { // 校验模块下用例是否重复，未重复写入XML
+					JOptionPane.showMessageDialog(Editor.frame, "该模块下已存在相同用例！", "提示", JOptionPane.WARNING_MESSAGE);
+					return;
+				}
+				
+				// 新增节点
+				DefaultMutableTreeNode newNode = new DefaultMutableTreeNode(caseName);
+				newNode.setAllowsChildren(false);
+				DefaultMutableTreeNode selectionNode = (DefaultMutableTreeNode) treepath.getLastPathComponent(); // 获取选中的节点
+				treeModel.insertNodeInto(newNode, selectionNode, selectionNode.getChildCount());
+				tree.scrollPathToVisible(new TreePath(newNode.getPath()));
+						
+				// 新建用例文件
+				File srcFile = new File (templetePath + "CaseTemplate.xls");
+				File destFile = new File (testCasePath + selectionNode.toString() + File.separator + caseName + ".xls");
+				try {
+					FileUtils.copyFile(srcFile, destFile);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 			if (ae.getActionCommand().equals("删除")) {
 				TreePath treepath = tree.getSelectionPath();
-				if(treepath == null) { //没有选节点
-					System.out.println("请选择要删除的节点！");
+				if(treepath == null || treepath.getPath().length == 1) { //没有选节点或者选中根节点
+					JOptionPane.showMessageDialog(Editor.frame, "请选择要删除的模块或用例！", "提示", JOptionPane.WARNING_MESSAGE);
 					return;
 				}				
-				int level = treepath.getPath().length;
+				int level = treepath.getPath().length; // 用长度来判断选中的节点类型  2-模块节点 3-用例节点
 				// 获取选中的节点
 				DefaultMutableTreeNode selectionNode = (DefaultMutableTreeNode) treepath.getLastPathComponent();
 				switch (level) {
-				case 1 :
-					System.out.println("确定删除所有模块和用例？");
-					if (this.clearAllModules()){
-						selectionNode.removeAllChildren();
-						treeModel.reload(); // 重新加载树
-						return;
-					}										
-					break;
 				case 2 :
-					System.out.println("确定删除该模块？");
-					if(this.clearUniqueModule(selectionNode.toString())) {
+					if (JOptionPane.showConfirmDialog(Editor.frame, "确定删除该模块？", "提示", JOptionPane.YES_NO_OPTION) == 1) {
+						return;
+					}
+					if(this.clearModuleDir(selectionNode.toString())) {					
 						treeModel.removeNodeFromParent(selectionNode); // 删除节点
+						this.removeModule(selectionNode.toString()); // 写入XML
 						return;
 					}					
 					break;
 			    case 3 :
-				    System.out.println("确定删除该用例？");
+				    if (JOptionPane.showConfirmDialog(Editor.frame, "确定删除该用例？", "提示", JOptionPane.YES_NO_OPTION) == 1) {
+						return;
+					}
 				    String moduleName = treepath.getPath()[1].toString();
 				    String caseName = selectionNode.toString();
-				    if (this.clearUniqueCase(moduleName,caseName)) {
-				    	treeModel.removeNodeFromParent(selectionNode); // 删除节点
+				    if (this.clearCaseFile(moduleName,caseName)) {
+				    	this.removeCase(moduleName, caseName); 	// 写入XML
+				    	treeModel.removeNodeFromParent(selectionNode); // Tree中删除节点
 				    	return;
 				    }		
 				    break;
 			    }
-				System.out.println("删除失败，请稍后再试！");
-			}			
+			}
+			if (ae.getActionCommand().equals("修改")) {
+				TreePath treepath = tree.getSelectionPath();
+				if(treepath == null || treepath.getPath().length == 1) { //没有选节点或者选中根节点
+					JOptionPane.showMessageDialog(Editor.frame, "请选择要修改的模块或用例！", "提示", JOptionPane.WARNING_MESSAGE);
+					return;
+				}				
+				int level = treepath.getPath().length; // 用长度来判断选中的节点类型  2-模块节点 3-用例节点
+				// 获取选中的节点
+				DefaultMutableTreeNode selectionNode = (DefaultMutableTreeNode) treepath.getLastPathComponent();
+				switch (level) {
+				case 2 :
+					String newModuleName = JOptionPane.showInputDialog(Editor.frame, "请输入新的模块名", "修改", JOptionPane.INFORMATION_MESSAGE);
+					if (newModuleName == null || newModuleName.equals("")) return;
+					if (!modifyModule(currentNode, newModuleName)) {
+						JOptionPane.showMessageDialog(Editor.frame, "该模块已存在！", "提示", JOptionPane.WARNING_MESSAGE);
+						return;						
+					}
+					// 修改节点名
+					selectionNode.setUserObject(newModuleName);
+					tree.updateUI();
+					
+					// 修改目录名
+					File moduleFolder = new File(testCasePath, currentNode);
+					moduleFolder.renameTo(new File(testCasePath, newModuleName));		
+					
+					break;
+			    case 3 :
+					String newCaseName = JOptionPane.showInputDialog(Editor.frame, "请输入新的用例名", "修改", JOptionPane.INFORMATION_MESSAGE);
+					if (newCaseName == null || newCaseName.equals("")) return;
+					String moduleName = treepath.getPath()[1].toString();
+					if (!modifyCase(moduleName, currentNode, newCaseName)) {
+						JOptionPane.showMessageDialog(Editor.frame, "该模块下已存在相同用例！", "提示", JOptionPane.WARNING_MESSAGE);
+						return;						
+					}
+					// 修改节点名
+					selectionNode.setUserObject(newCaseName);
+					tree.updateUI();
+					
+					// 修改用例文件名
+					File caseFile= new File(testCasePath + moduleName + File.separator + currentNode + ".xls");
+					caseFile.renameTo(new File(testCasePath + moduleName + File.separator + newCaseName + ".xls"));
+				    break;
+			    }				
+			}
+		}
+
+		private boolean addNewModule(String moduleName) {
+			Document doc = readFromXml();
+			Element root = doc.getRootElement();
+			String xPath = String.format("//module[@name='%s']", moduleName); // 用Xpath找到对应的模块节点
+			Element moduleNode = (Element)doc.selectSingleNode(xPath);
+			if (moduleNode != null ) { //已经存在
+				return false;
+			} else {
+				Element newModule = root.addElement("module");
+				newModule.addAttribute("name", moduleName);
+				writeToXml(doc);
+			}
+			return true;			
 		}
 		
-		private boolean clearAllModules() {
-			// 删除所有模块文件夹
-			File[] files = new File (testCasePath).listFiles();
-			for (File file : files) {
-				try {
-					FileUtils.deleteDirectory(file);
-				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
+		private void removeModule(String moduleName) {
+			Document doc = readFromXml();
+			Element root = doc.getRootElement();
+			String xPath = String.format("//module[@name='%s']", moduleName);
+			Element moduleNode = (Element)doc.selectSingleNode(xPath);
+			root.remove(moduleNode);
+			writeToXml(doc);
+		}
+		
+		private boolean modifyModule(String oldName, String newName) {
+			Document doc = readFromXml();
+			String xPath = String.format("//module[@name='%s']", newName);
+			Element moduleNode = (Element)doc.selectSingleNode(xPath);
+			if (moduleNode != null) {
+				return false;
+			} 
+			xPath = String.format("//module[@name='%s']", oldName);
+			moduleNode = (Element)doc.selectSingleNode(xPath);
+			Attribute attrDate = moduleNode.attribute("name");//获取此节点的指定属性
+			attrDate.setValue(newName);
+			writeToXml(doc);
+			return true;
+		}		
+		
+        private boolean addNewCase(String moduleName, String caseName) {
+        	Document doc = readFromXml();
+        	String xPath = String.format("//module[@name='%s']", moduleName);
+			Element moduleNode = (Element)doc.selectSingleNode(xPath);
+			List<Element> caseList = moduleNode.elements();
+			for (Element el : caseList)	{
+				if (caseName.equals(el.getText())) {
 					return false;
 				}
 			}
-			return true;
+			Element newCase = moduleNode.addElement("case");
+			newCase.setText(caseName);
+			writeToXml(doc);
+        	return true;
+        }
+        	
+		private void removeCase(String moduleName, String caseName) {
+			Document doc = readFromXml();
+			String xPath = String.format("//module[@name='%s']", moduleName);
+			Element moduleNode = (Element)doc.selectSingleNode(xPath);
+			List<Element> caseList = moduleNode.elements();
+			caseList.forEach(el -> {
+				if (caseName.equals(el.getText())) {
+					moduleNode.remove(el);
+				}
+			});			
+			writeToXml(doc);
 		}
 		
-		private boolean clearUniqueModule(String moduleName) {
+		private boolean modifyCase(String moduleName, String oldCaseName, String newCaseName) {
+			Document doc = readFromXml();
+			String xPath = String.format("//module[@name='%s']", moduleName);
+			Element moduleNode = (Element)doc.selectSingleNode(xPath);
+			List<Element> caseList = moduleNode.elements();
+			Element oldCase = null;
+			for (Element el : caseList)	{
+				if (newCaseName.equals(el.getText())) {
+					return false;
+				}
+				if (oldCaseName.equals(el.getText())) {
+					oldCase = el;
+				}
+			}
+			oldCase.setText(newCaseName);
+			writeToXml(doc);
+			return true;
+		}
+
+		private boolean clearModuleDir(String moduleName) {
 			// 删除模块目录
 			try {
 				FileUtils.deleteDirectory(new File(testCasePath + moduleName));
@@ -193,7 +298,7 @@ public class JTreeListeners implements TreeModelListener,ActionListener{
 			return true;
 		}
 		
-		private boolean clearUniqueCase(String moduleName, String caseName) {
+		private boolean clearCaseFile(String moduleName, String caseName) {
 			// 删除用例文件
 			String filePath = testCasePath + moduleName + File.separator + caseName + ".xls";
 			try {
@@ -204,6 +309,83 @@ public class JTreeListeners implements TreeModelListener,ActionListener{
 			return true;
 		}
 		
+
+
+			
+		private Document readFromXml() {
+			File caseSets = new File(configFilesPath);
+			Document doc = null;
+			try {
+				doc = reader.read(caseSets);
+			} catch (DocumentException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			return doc;
+		}
 		
+		private void writeToXml(Document doc) {
+		    try {
+			    File caseSets = new File(configFilesPath);
+			    OutputStream os = new FileOutputStream(caseSets);
+			    OutputFormat format = OutputFormat.createPrettyPrint(); // 精美模式
+			    format.setEncoding("utf-8"); 
+			    XMLWriter xw = new XMLWriter(os,format);
+			    xw.write(doc);
+			    xw.flush();
+			    xw.close();
+			} catch (IOException e) {
+				
+			}
+		}
+
+
+		@Override
+		public void valueChanged(TreeSelectionEvent e) {
+			JTree tree = (JTree) e.getSource();
+			// 利用JTree的getLastSelectedPathComponent()方法取得目前选取的节点.
+			DefaultMutableTreeNode selectionNode = (DefaultMutableTreeNode) tree
+					.getLastSelectedPathComponent();
+			String nodeName = selectionNode.toString();
+			// 判断是否为树叶节点，若是则显示文件内容，若不是则不做任何事
+			if (selectionNode.isLeaf()) {
+				TreePath treepath = tree.getSelectionPath();
+				String moduleName = treepath.getPath()[1].toString();
+				System.out.println(moduleName + nodeName);
+				String path = testCasePath + moduleName + File.separator + nodeName + ".xls";
+				List<Object> data = ExcelHelper.simpleReadJavaModel(path, 1, 1, TestStep.class);
+				System.out.println(data.size());
+				System.out.println(data);
+				String[][] tableData = new String[1000][6];
+				if (data.size() == 0) {
+					for (int i = 0; i < tableData.length; i++) {
+						tableData[i][0] = String.valueOf(i + 1);
+					}					
+				} else {
+					for (int i = 0; i < data.size(); i++) {
+						tableData[i][0] = String.valueOf(i + 1);
+						tableData[i][1] = ((TestStep)data.get(i)).getDescription();
+						tableData[i][2] = ((TestStep)data.get(i)).getOperate();
+						tableData[i][3] = ((TestStep)data.get(i)).getParam1();
+						tableData[i][4] = ((TestStep)data.get(i)).getParam2();
+						tableData[i][5] = ((TestStep)data.get(i)).getParam3();
+					}					
+				}
+				repaintTable(Editor.table, tableData);	// 生成列表数据
+			}			
+		}
+		
+		private void repaintTable(JTable table, String[][] data) {
+			table.setModel(Editor.generateTableModel(data));
+	        TableColumn column = Editor.table.getColumnModel().getColumn(0);
+	        column.setMaxWidth(60); // 第一列宽度
+			JComboBox<String> comboBox = new JComboBox<String>();
+			comboBox.setFont(new Font("微软雅黑",Font.PLAIN,12));
+			ConfigReader.keyWordsList.forEach(el -> {
+				KeyWord keyWord = (KeyWord)el;
+				comboBox.addItem(keyWord.getFunction());
+			});
+			table.getColumnModel().getColumn(2).setCellEditor(new DefaultCellEditor(comboBox)); // 第三列为CheckBox类型		
+		} 
 
 }

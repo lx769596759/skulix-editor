@@ -10,9 +10,12 @@ import java.awt.GridLayout;
 import java.awt.Insets;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.DefaultCellEditor;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
 import javax.swing.JMenu;
 import javax.swing.JMenuBar;
 import javax.swing.JMenuItem;
@@ -22,9 +25,13 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTree;
 import javax.swing.UIManager;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
 import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeModel;
+import javax.swing.tree.TreeSelectionModel;
 import org.jb2011.lnf.beautyeye.BeautyEyeLNFHelper;
+
+import Domain.KeyWord;
 import Listeners.JTreeListeners;
 
 // http://www.iteedu.com/plang/java/jtswingchxshj/58.php
@@ -34,8 +41,10 @@ public class Editor extends JFrame {
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
+	public static Editor frame;
 	public static JTable table;
 	public static JTree tree;
+	public final static String[] tableTitle = { "步骤ID", "步骤描述", "操作", "参数1", "参数2", "参数3"};
 	
 	/**
 	 * Launch the application.
@@ -44,9 +53,14 @@ public class Editor extends JFrame {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
 				try {
-					BeautyEyeLNFHelper.launchBeautyEyeLNF();					
+					// 界面效果相关
+					System.setProperty("sun.java2d.noddraw", "true");
+					BeautyEyeLNFHelper.translucencyAtFrameInactive = false;
+					BeautyEyeLNFHelper.launchBeautyEyeLNF();				
 					UIManager.put("RootPane.setupButtonVisible", false);
-					Editor frame = new Editor();
+					
+					// 启动界面
+					frame = new Editor();
 					frame.setVisible(true);
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -60,7 +74,7 @@ public class Editor extends JFrame {
 	 */
 	public Editor() {
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		this.setMinimumSize(new Dimension(1000, 700));
+		this.setMinimumSize(new Dimension(1200, 900));
 		this.setLocationRelativeTo(null);
 		this.setTitle("Editor");
 		
@@ -111,39 +125,46 @@ public class Editor extends JFrame {
 		tree = new JTree(root);
 		ConfigReader configReader = new ConfigReader();
 		configReader.initializeTree(tree); // 读取配置文件获取JTree的初始值
-		tree.setFont(new Font("微软雅黑",Font.PLAIN,13));
-		tree.setEditable(true);// 设置JTree为可编辑的
+		tree.setFont(new Font("微软雅黑",Font.BOLD,13));
+		tree.setEditable(false);// 设置JTree为不可编辑的
 		JTreeListeners treeListeners = new JTreeListeners();
-		tree.addMouseListener(treeListeners.new MouseHandle()); // 使Tree加入检测Mouse事件，以便取得节点名称
-		DefaultTreeModel treeModel = (DefaultTreeModel) tree.getModel();
-		treeModel.addTreeModelListener(treeListeners);	// 添加监听器
+		tree.addMouseListener(treeListeners); // 使Tree加入检测Mouse事件，以便取得节点名称
+		tree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION); // 设置Tree的选择模式为一次只能选择一个节点
+		tree.addTreeSelectionListener(treeListeners); // 增加TreeSelectionEvent事件监听
         scrollPane.setViewportView(tree);
         treePanel.add(scrollPane);
         JPopupMenu popup = new JPopupMenu(); // 右键弹出菜单
-        JMenuItem jmi1 = new JMenuItem("新增模块");
-        JMenuItem jmi2 = new JMenuItem("新增用例");
-        JMenuItem jmi3 = new JMenuItem("删除");
-        jmi1.addActionListener(treeListeners);
-        jmi2.addActionListener(treeListeners);
-        jmi3.addActionListener(treeListeners);
+        JMenuItem addModule = new JMenuItem("新增模块");
+        JMenuItem addCase = new JMenuItem("新增用例");
+        JMenuItem delete = new JMenuItem("删除");
+        JMenuItem modify = new JMenuItem("修改");
+        addModule.addActionListener(treeListeners);
+        addCase.addActionListener(treeListeners);
+        delete.addActionListener(treeListeners);
+        modify.addActionListener(treeListeners);
         tree.setComponentPopupMenu(popup);
-        popup.add(jmi1);
-        popup.add(jmi2);
-        popup.add(jmi3);
+        popup.add(addModule);
+        popup.add(addCase);
+        popup.add(delete);
+        popup.add(modify);
         
         
         
-        
-        //右侧的表格编辑面板  
+        // 右侧的表格编辑面板  
         JPanel tablePanel = new JPanel();  
         tablePanel.setBackground(Color.WHITE);  
         this.add(tablePanel,new GBC(1,1).setFill(GBC.BOTH)); 
         tablePanel.setLayout(new GridLayout(0,1));
         JScrollPane scrollPane1 = new JScrollPane();
         table = new JTable();
+        ((DefaultTableCellRenderer)table.getTableHeader().getDefaultRenderer()).setHorizontalAlignment(JLabel.CENTER); // 表头居中
+        table.getTableHeader().setFont(new Font("微软雅黑",Font.BOLD,12)); // 表头字体
+        table.setFont(new Font("微软雅黑",Font.PLAIN,12)); // 表格字体
+        table.setShowHorizontalLines(true); // 水平网格线
+        table.setShowVerticalLines(true); // 垂直网格线
+        
         scrollPane1.setViewportView(table);
         tablePanel.add(scrollPane1);
-       
         //下侧的输出面板  
         JPanel consolePanel = new JPanel();  
         consolePanel.setBackground(Color.LIGHT_GRAY);  
@@ -156,6 +177,16 @@ public class Editor extends JFrame {
         this.add(statePanel,new GBC(0,3,2,1).  
                       setFill(GBC.BOTH).setIpad(200, 20).setWeight(100, 0));  
         		
+	}
+	
+	public static DefaultTableModel generateTableModel(String[][] data) {
+		DefaultTableModel defaultModel = new DefaultTableModel(data, tableTitle) {
+			public boolean isCellEditable(int row, int col) {
+				  if (col == 0) return false; // 第一列不可编辑
+			      return true;
+			   }
+		};
+		return defaultModel;		
 	}
 	
 	class GBC extends GridBagConstraints  

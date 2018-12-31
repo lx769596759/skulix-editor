@@ -6,14 +6,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import javax.swing.JTree;
 import javax.swing.tree.DefaultMutableTreeNode;
-
 import org.dom4j.Document;
 import org.dom4j.DocumentException;
 import org.dom4j.Element;
 import org.dom4j.io.SAXReader;
+import Domain.KeyWord;
+import utils.ExcelHelper;
 
 public class ConfigReader {
 	
@@ -21,22 +21,20 @@ public class ConfigReader {
 	public static String testCasePath;
 	public static String templetePath;
 	public static String configFilesPath;
+	public static List<Object> keyWordsList; // 记录所有的关键字信息
 	
 	static {
 		workPath = System.getProperty("user.dir") + File.separator; // 工作路径
 		testCasePath = workPath + "TestCases\\";  // 用例路径
 		templetePath = workPath + "Templete\\";   // 模板路径
-		configFilesPath = workPath + "Resources\\"; // 配置文件路径
+		configFilesPath = workPath + "Resources" + File.separator + "TestCase.xml"; // 用例配置文件路径
+		String path = templetePath + "CaseTemplate.xls";
+		keyWordsList = ExcelHelper.simpleReadJavaModel(path, 3, 1, KeyWord.class); // 将所有的关键字信息读入list
 	}
 	
-	public void initializeTree(JTree tree) {
-		this.parseCaseXml(tree); // 解析用户用例配置文件
-		
-	
-	}
-	
-	private void parseCaseXml(JTree tree) {
-		File caseSets = new File(configFilesPath + "TestCase.xml");
+	public void initializeTree(JTree tree) {	
+		// 解析用户用例配置文件，在树中展示
+		File caseSets = new File(configFilesPath);
 		if (!caseSets.exists()) {
 			System.out.println("获取配置文件失败！");
 			return;
@@ -69,8 +67,5 @@ public class ConfigReader {
 		} catch (DocumentException e) {
 			
 		}
-		
-		
 	}
-
 }
