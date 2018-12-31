@@ -357,7 +357,7 @@ public class JTreeListeners extends MouseAdapter implements TreeSelectionListene
 				System.out.println(data.size());
 				System.out.println(data);
 				String[][] tableData = new String[1000][6];
-				if (data.size() == 0) {
+				if (data.size() == 0) { // 没有数据
 					for (int i = 0; i < tableData.length; i++) {
 						tableData[i][0] = String.valueOf(i + 1);
 					}					

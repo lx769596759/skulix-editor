@@ -10,10 +10,8 @@ import java.awt.GridLayout;
 import java.awt.Insets;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.DefaultCellEditor;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
-import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JMenu;
@@ -30,8 +28,6 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeSelectionModel;
 import org.jb2011.lnf.beautyeye.BeautyEyeLNFHelper;
-
-import Domain.KeyWord;
 import Listeners.JTreeListeners;
 
 // http://www.iteedu.com/plang/java/jtswingchxshj/58.php
@@ -44,7 +40,8 @@ public class Editor extends JFrame {
 	public static Editor frame;
 	public static JTable table;
 	public static JTree tree;
-	public final static String[] tableTitle = { "步骤ID", "步骤描述", "操作", "参数1", "参数2", "参数3"};
+	private final static String[] tableTitle = { "步骤ID", "步骤描述", "操作", "参数1", "参数2", "参数3"};
+	private Font normalFont = new Font("微软雅黑",Font.PLAIN,12);
 	
 	/**
 	 * Launch the application.
@@ -97,19 +94,19 @@ public class Editor extends JFrame {
         toolSelectPanel.add(Box.createHorizontalStrut(5));
         
         JButton scratchButton = new JButton("屏幕截图");
-        scratchButton.setFont(new Font("微软雅黑",Font.PLAIN,12));
+        scratchButton.setFont(normalFont);
         scratchButton.setIcon(new ImageIcon("pics/1.png"));
         toolSelectPanel.add(scratchButton);
         toolSelectPanel.add(Box.createHorizontalStrut(10)); 
         JButton insertButton = new JButton("插入图片");
-        insertButton.setFont(new Font("微软雅黑",Font.PLAIN,12));
+        insertButton.setFont(normalFont);
         insertButton.setIcon(new ImageIcon("pics/2.png"));
         toolSelectPanel.add(insertButton);   
         toolSelectPanel.add(Box.createHorizontalStrut(10)); 
         
         JButton locateButton = new JButton("定位");
         locateButton.setIcon(new ImageIcon("pics/3.png"));
-        locateButton.setFont(new Font("微软雅黑",Font.PLAIN,12));
+        locateButton.setFont(normalFont);
         toolSelectPanel.add(locateButton);
 
 
@@ -157,9 +154,9 @@ public class Editor extends JFrame {
         tablePanel.setLayout(new GridLayout(0,1));
         JScrollPane scrollPane1 = new JScrollPane();
         table = new JTable();
-        ((DefaultTableCellRenderer)table.getTableHeader().getDefaultRenderer()).setHorizontalAlignment(JLabel.CENTER); // 表头居中
-        table.getTableHeader().setFont(new Font("微软雅黑",Font.BOLD,12)); // 表头字体
-        table.setFont(new Font("微软雅黑",Font.PLAIN,12)); // 表格字体
+        ((DefaultTableCellRenderer)table.getTableHeader().getDefaultRenderer()).setHorizontalAlignment(JLabel.CENTER); // 表头字体居中
+        table.getTableHeader().setFont(new Font("微软雅黑",Font.BOLD,13)); // 表头字体样式
+        table.setFont(normalFont); // 表格字体样式
         table.setShowHorizontalLines(true); // 水平网格线
         table.setShowVerticalLines(true); // 垂直网格线
         
