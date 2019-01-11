@@ -8,6 +8,9 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.GridLayout;
 import java.awt.Insets;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ImageIcon;
@@ -27,7 +30,9 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.TreeSelectionModel;
+
 import org.jb2011.lnf.beautyeye.BeautyEyeLNFHelper;
+
 import Listeners.JTreeListeners;
 
 // http://www.iteedu.com/plang/java/jtswingchxshj/58.php
@@ -159,7 +164,25 @@ public class Editor extends JFrame {
         table.setFont(normalFont); // 表格字体样式
         table.setShowHorizontalLines(true); // 水平网格线
         table.setShowVerticalLines(true); // 垂直网格线
-        
+        table.setRowHeight(50);
+        ImageIcon apple = new ImageIcon("pics/截图.png");
+        table.addMouseListener(new MouseAdapter(){ 
+        	@Override 
+        	public void mousePressed(MouseEvent e) { 
+        	Object o = e.getSource(); 
+        	if(o instanceof JTable){ 
+        	JTable t = (JTable) o; 
+        	DefaultTableModel tb = (DefaultTableModel) t.getModel(); 
+        	//获取选中的单元格值 
+        	System.out.println(tb.getValueAt(t.getSelectedRow(), t.getSelectedColumn())); 
+        	//修改选中单元格的值 
+        	if(tb.isCellEditable(t.getSelectedRow(), t.getSelectedColumn())){ 
+        	tb.setValueAt(apple, t.getSelectedRow(), t.getSelectedColumn()); 
+        	} 
+        	} 
+        	} 
+        	});
+
         scrollPane1.setViewportView(table);
         tablePanel.add(scrollPane1);
         //下侧的输出面板  
@@ -176,7 +199,7 @@ public class Editor extends JFrame {
         		
 	}
 	
-	public static DefaultTableModel generateTableModel(String[][] data) {
+	public static DefaultTableModel generateTableModel(Object[][] data) {
 		DefaultTableModel defaultModel = new DefaultTableModel(data, tableTitle) {
 			public boolean isCellEditable(int row, int col) {
 				  if (col == 0) return false; // 第一列不可编辑

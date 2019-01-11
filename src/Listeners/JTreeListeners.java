@@ -13,6 +13,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import javax.swing.DefaultCellEditor;
+import javax.swing.ImageIcon;
 import javax.swing.JComboBox;
 import javax.swing.JOptionPane;
 import javax.swing.JTable;
@@ -24,6 +25,7 @@ import javax.swing.tree.DefaultMutableTreeNode;
 import javax.swing.tree.DefaultTreeModel;
 import javax.swing.tree.TreeNode;
 import javax.swing.tree.TreePath;
+
 import org.apache.commons.io.FileUtils;
 import org.dom4j.Attribute;
 import org.dom4j.Document;
@@ -32,6 +34,7 @@ import org.dom4j.Element;
 import org.dom4j.io.OutputFormat;
 import org.dom4j.io.SAXReader;
 import org.dom4j.io.XMLWriter;
+
 import Client.ConfigReader;
 import Client.Editor;
 import Domain.KeyWord;
@@ -356,10 +359,12 @@ public class JTreeListeners extends MouseAdapter implements TreeSelectionListene
 				List<Object> data = ExcelHelper.simpleReadJavaModel(path, 1, 1, TestStep.class);
 				System.out.println(data.size());
 				System.out.println(data);
-				String[][] tableData = new String[1000][6];
+				Object[][] tableData = new Object[1000][6];
+				ImageIcon apple = new ImageIcon("pics/截图.png");
 				if (data.size() == 0) { // 没有数据
 					for (int i = 0; i < tableData.length; i++) {
 						tableData[i][0] = String.valueOf(i + 1);
+						tableData[i][1] = apple;
 					}					
 				} else {
 					for (int i = 0; i < data.size(); i++) {
@@ -375,7 +380,7 @@ public class JTreeListeners extends MouseAdapter implements TreeSelectionListene
 			}			
 		}
 		
-		private void repaintTable(JTable table, String[][] data) {
+		private void repaintTable(JTable table, Object[][] data) {
 			table.setModel(Editor.generateTableModel(data));
 	        TableColumn column = Editor.table.getColumnModel().getColumn(0);
 	        column.setMaxWidth(60); // 第一列宽度

@@ -4,7 +4,7 @@
 	<classpathentry kind="src" path="Resources"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
 	<classpathentry kind="lib" path="lib/beautyeye_lnf.jar"/>
-	<classpathentry kind="lib" path="lib/commons-io-2.6.jar"/>
+	<classpathentry kind="lib" path="lib/commons-io-2.6.jar" sourcepath="C:/Users/01375224/.m2/repository/commons-io/commons-io/2.6/commons-io-2.6-sources.jar"/>
 	<classpathentry kind="lib" path="lib/dom4j-2.1.1.jar"/>
 	<classpathentry kind="lib" path="lib/jaxen-1.1.6.jar"/>
 	<classpathentry kind="lib" path="lib/easyexcel-1.1.2-beat1.jar"/>
