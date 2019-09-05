@@ -139,7 +139,7 @@ public class JdbcUtil {
     /**
      * 执行SQL进行INSERT和UPDATE
      */
-    public static void update(String sql, Object... args) {
+    public static void insertOrUpdate(String sql, Object... args) {
         try {
             stmt = conn.prepareStatement(sql);
             if (null != args && args.length != 0) {

@@ -15,9 +15,9 @@ public class LidarUtil {
     private static final byte[] START_SCAN = new byte[]{(byte) 0xA5, 0x20};  // 开始扫描
     private static final byte[] STOP_SCAN = new byte[]{(byte) 0xA5, 0x25};   // 停止扫描
     private static final byte[] STOP_MOTOR = new byte[]{(byte) 0xA5, (byte) 0xF0, 0x02, 0x00, 0x00, 0x57}; // 关闭电机转动命令
-    private static final byte[] START_MOTOR_DEFAULT = new byte[]{(byte) 0xA5, (byte) 0xF0, 0x02, (byte) 0xb8, 0x01, (byte) 0xee}; // 电机转动,速度：440r/m
-    private static final byte[] START_MOTOR_420 = new byte[]{(byte) 0xA5, (byte) 0xF0, 0x02, (byte) 0xa4, 0x01, (byte) 0xf2}; // 电机转动,速度：420r/m
-    private static final byte[] START_MOTOR_400 = new byte[]{(byte) 0xA5, (byte) 0xF0, 0x02, (byte) 0x90, 0x01, (byte) 0xc6}; // 电机转动,速度：400r/m
+    private static final byte[] START_MOTOR_DEFAULT = new byte[]{(byte) 0xA5, (byte) 0xF0, 0x02, (byte) 0xb8, 0x01, (byte) 0xee}; // 电机转动,速度：440转/分
+    private static final byte[] START_MOTOR_420 = new byte[]{(byte) 0xA5, (byte) 0xF0, 0x02, (byte) 0xa4, 0x01, (byte) 0xf2}; // 电机转动,速度：420转/分
+    private static final byte[] START_MOTOR_400 = new byte[]{(byte) 0xA5, (byte) 0xF0, 0x02, (byte) 0x90, 0x01, (byte) 0xc6}; // 电机转动,速度：400转/分
     private static boolean readFlag = false;
     private static ExecutorService cachedThreadPool = Executors.newCachedThreadPool();
     private static ScheduledExecutorService scheduledThreadPool = Executors.newScheduledThreadPool(1);
@@ -56,7 +56,7 @@ public class LidarUtil {
             e.printStackTrace();
         }
         SerialPortUtil.sendData(serialPort, START_SCAN);
-        System.out.println("雷达已启动");
+        System.out.println("开始扫描");
     }
 
     /**
@@ -71,12 +71,12 @@ public class LidarUtil {
             Thread.sleep(1000);
             // 清空串口的数据
             byte[] b1 = new byte[10240];
-            int temp = 0;
+            int temp;
             while ((temp = inputStream.read(b1)) > 0) {
                 b1 = new byte[10240];
             }
             b1 = null;
-            System.out.println("雷达已停止");
+            System.out.println("停止扫描");
         }catch (Exception e) {
             e.printStackTrace();
         }
@@ -134,7 +134,7 @@ public class LidarUtil {
                                 isRound = true;
                             }
                             if (!list.isEmpty()) {
-                                List<String> dataList = new ArrayList<String>(list);
+                                List<String> dataList = new ArrayList<>(list);
                                 cachedThreadPool.execute(new LidarDataHandle(dataList));
                             }
                             list.clear(); // 清空list

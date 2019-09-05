@@ -22,7 +22,7 @@ public class LidarDataHandle implements Runnable{
             Pair p = LidarUtil.parse(data);
             String angle = p.getKey().toString();
             String distance = p.getKey().toString();
-            JdbcUtil.update(INSERT_SQL, angle, distance);
+            JdbcUtil.insertOrUpdate(INSERT_SQL, angle, distance);
             p = null;
         }
     }
